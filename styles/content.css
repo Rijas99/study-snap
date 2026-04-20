@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+#studysnap-caption-popup {
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px) scale(0.95);
+  opacity: 0;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(16px);
+  padding: 10px;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.15);
+  z-index: 2147483647; /* absolute max z-index */
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: studysnap-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes studysnap-slide-up {
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+#studysnap-caption-popup input {
+  width: 400px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 18px;
+  padding: 12px 16px;
+  outline: none;
+}
+
+#studysnap-caption-popup input::placeholder {
+  color: rgba(255,255,255,0.5);
+  font-weight: 400;
+}
+
+#studysnap-toast {
+  position: fixed;
+  top: 32px;
+  right: 32px;
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(12px);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+  z-index: 2147483647;
+  transform: translateY(20px) scale(0.95);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}

@@ -1,0 +1,37 @@
+#studysnap-capture-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.65);
+  z-index: 9999999;
+  cursor: crosshair;
+  user-select: none;
+  backdrop-filter: blur(3px);
+}
+
+#studysnap-capture-selection {
+  position: absolute;
+  border: 2px solid #3b82f6; 
+  background-color: rgba(59, 130, 246, 0.15);
+  display: none;
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); /* extra dimming outside */
+}
+
+#studysnap-instructions {
+  position: absolute;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  pointer-events: none;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+}
