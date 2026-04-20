@@ -29,6 +29,13 @@
         "mac": "Alt+S"
       },
       "description": "Take a screenshot of the saved zone on YouTube"
+    },
+    "take_fullscreen_screenshot": {
+      "suggested_key": {
+        "default": "Alt+F",
+        "mac": "Alt+F"
+      },
+      "description": "Take a full screen screenshot on YouTube"
     }
   },
   "content_scripts": [

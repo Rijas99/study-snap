@@ -60,9 +60,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return true;
 });
 
-// Hotkey Listener (Alt+S)
+// Hotkey Listener (Alt+S and Alt+F)
 chrome.commands.onCommand.addListener(async (command) => {
-  if (command === 'take_screenshot') {
+  if (command === 'take_screenshot' || command === 'take_fullscreen_screenshot') {
     const state = await chrome.storage.local.get('sessionActive');
     if (!state.sessionActive) {
       console.warn("Session is not active. Ignoring screenshot command.");
@@ -73,16 +73,19 @@ chrome.commands.onCommand.addListener(async (command) => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab || (!tab.url.includes('youtube.com/watch') && !tab.url.includes('youtu.be/'))) return;
     
-    // 2. Validate capture zone exists
-    const sessionData = await chrome.storage.session.get('captureZone');
-    if (!sessionData.captureZone) {
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => alert('StudySnap: No capture zone defined. Please click Start Session and drag an area on screen first.')
-      }).catch(e => console.error(e));
-      return;
+    // 2. Validate capture zone exists (only for zone capturing)
+    let zone = null;
+    if (command === 'take_screenshot') {
+      const sessionData = await chrome.storage.session.get('captureZone');
+      if (!sessionData.captureZone) {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => alert('StudySnap: No capture zone defined. Please click Start Session and drag an area on screen first.')
+        }).catch(e => console.error(e));
+        return;
+      }
+      zone = sessionData.captureZone;
     }
-    const zone = sessionData.captureZone;
 
     // 3. Take Full Screenshot
     const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
@@ -104,8 +107,10 @@ chrome.commands.onCommand.addListener(async (command) => {
         // Show loading state
         chrome.tabs.sendMessage(tab.id, { type: 'SHOW_TOAST', message: '⏳ Uploading to Notion...' });
         
-        // 5. Crop base64 image via OffscreenCanvas
-        const croppedBase64 = await cropImage(dataUrl, zone);
+        // 5. Crop base64 image via OffscreenCanvas if zone capturing, else use full screen directly
+        const finalBase64 = (command === 'take_screenshot' && zone) 
+                              ? await cropImage(dataUrl, zone) 
+                              : dataUrl;
         
         // 6. Send to Notion
         const storageOptions = await chrome.storage.local.get(['notionToken', 'targetPageId']);
@@ -119,7 +124,7 @@ chrome.commands.onCommand.addListener(async (command) => {
           storageOptions.targetPageId, 
           title, 
           timestamp, 
-          croppedBase64, 
+          finalBase64, 
           caption, 
           isNewVideo
         );
