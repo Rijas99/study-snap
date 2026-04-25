@@ -63,7 +63,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // Hotkey Listener (Alt+S and Alt+F)
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === 'take_screenshot' || command === 'take_fullscreen_screenshot') {
-    const state = await chrome.storage.local.get('sessionActive');
+    const state = await chrome.storage.local.get(['sessionActive', 'destination']);
     if (!state.sessionActive) {
       console.warn("Session is not active. Ignoring screenshot command.");
       return;
@@ -71,8 +71,16 @@ chrome.commands.onCommand.addListener(async (command) => {
     
     // 1. Validate active tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab || (!tab.url.includes('youtube.com/watch') && !tab.url.includes('youtu.be/'))) return;
+    if (!tab || tab.url.startsWith('chrome://')) return;
     
+    // Inject content scripts safely (content.js has an initialization guard)
+    try {
+      await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ['styles/content.css'] });
+      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+    } catch (e) {
+      console.warn("Failed to inject content scripts", e);
+    }
+
     // 2. Validate capture zone exists (only for zone capturing)
     let zone = null;
     if (command === 'take_screenshot') {
@@ -90,12 +98,15 @@ chrome.commands.onCommand.addListener(async (command) => {
     // 3. Take Full Screenshot
     const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
     
+    const dest = state.destination || 'notion';
+    const isNotion = dest === 'notion';
+
     // 4. Request Info and Caption from Content Script
-    chrome.tabs.sendMessage(tab.id, { type: 'REQUEST_SCREENSHOT_INFO' }, async (response) => {
+    chrome.tabs.sendMessage(tab.id, { type: 'REQUEST_SCREENSHOT_INFO', isNotion }, async (response) => {
       if (chrome.runtime.lastError || !response) {
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          func: () => alert('StudySnap: Cannot communicate with the extension yet. Please refresh the YouTube page completely and try again.')
+          func: () => alert('StudySnap: Cannot communicate with the extension. Please refresh the page completely and try again.')
         }).catch(e => console.error(e));
         return; 
       }
@@ -105,40 +116,60 @@ chrome.commands.onCommand.addListener(async (command) => {
       
       try {
         // Show loading state
-        chrome.tabs.sendMessage(tab.id, { type: 'SHOW_TOAST', message: '⏳ Uploading to Notion...' });
+        chrome.tabs.sendMessage(tab.id, { type: 'SHOW_TOAST', message: isNotion ? '⏳ Uploading to Notion...' : '⏳ Copying to Clipboard...' });
         
         // 5. Crop base64 image via OffscreenCanvas if zone capturing, else use full screen directly
         const finalBase64 = (command === 'take_screenshot' && zone) 
                               ? await cropImage(dataUrl, zone) 
                               : dataUrl;
         
-        // 6. Send to Notion
-        const storageOptions = await chrome.storage.local.get(['notionToken', 'targetPageId']);
-        if (!storageOptions.notionToken || !storageOptions.targetPageId) {
-           chrome.tabs.sendMessage(tab.id, { type: 'SHOW_TOAST', message: '❌ Notion integration missing!' });
-           return;
+        // 6. Navigate Logic depending on destination
+        if (isNotion) {
+          const storageOptions = await chrome.storage.local.get(['notionToken', 'targetPageId']);
+          if (!storageOptions.notionToken || !storageOptions.targetPageId) {
+             chrome.tabs.sendMessage(tab.id, { type: 'SHOW_TOAST', message: '❌ Notion integration missing!' });
+             return;
+          }
+          
+          await appendScreenshot(
+            storageOptions.notionToken, 
+            storageOptions.targetPageId, 
+            title, 
+            timestamp, 
+            finalBase64, 
+            caption, 
+            isNewVideo
+          );
+
+          if (isNewVideo) {
+             lastVideoId = videoId;
+             await chrome.storage.local.set({ lastVideoId });
+          }
+        } else {
+          // Copy to Clipboard
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: async (base64Str) => {
+              try {
+                const res = await fetch(base64Str);
+                const blob = await res.blob();
+                await navigator.clipboard.write([
+                  new ClipboardItem({ 'image/png': blob })
+                ]);
+              } catch (e) {
+                throw new Error("Failed to write to clipboard.");
+              }
+            },
+            args: [finalBase64]
+          });
         }
-        
-        await appendScreenshot(
-          storageOptions.notionToken, 
-          storageOptions.targetPageId, 
-          title, 
-          timestamp, 
-          finalBase64, 
-          caption, 
-          isNewVideo
-        );
         
         // 7. Update State
-        if (isNewVideo) {
-           lastVideoId = videoId;
-           await chrome.storage.local.set({ lastVideoId });
-        }
         sessionScreenshots++;
         await chrome.storage.local.set({ sessionScreenshots });
         updateBadge();
 
-        chrome.tabs.sendMessage(tab.id, { type: 'SHOW_TOAST', message: '✅ Saved to Notion!' });
+        chrome.tabs.sendMessage(tab.id, { type: 'SHOW_TOAST', message: isNotion ? '✅ Saved to Notion!' : '✅ Copied to Clipboard!' });
       } catch (err) {
         console.error(err);
         chrome.tabs.sendMessage(tab.id, { type: 'SHOW_TOAST', message: '❌ Error: ' + err.message });

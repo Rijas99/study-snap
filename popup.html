@@ -7,7 +7,15 @@
 <body>
   <div class="header">
     <h1><span class="highlight">Study</span>Snap</h1>
-    <p>Seamlessly transfer YouTube screen grabs straight to Notion.</p>
+    <p>Seamlessly transfer screen grabs straight to Notion or Clipboard.</p>
+  </div>
+
+  <div class="section">
+    <h2>Save Destination</h2>
+    <div class="radio-group" style="display: flex; gap: 10px; margin-bottom: 10px;">
+      <label><input type="radio" name="destination" value="notion" checked> Notion</label>
+      <label><input type="radio" name="destination" value="clipboard"> Clipboard</label>
+    </div>
   </div>
 
   <div id="auth-section" class="section">
@@ -22,14 +30,16 @@
   <div id="session-section" class="section hidden">
     <h2>Capture Setup</h2>
     
-    <label for="page-dropdown">Target Notion Page</label>
-    <div class="select-container">
-      <select id="page-dropdown">
-        <option value="" disabled selected>Loading pages...</option>
-      </select>
+    <div id="notion-setup">
+      <label for="page-dropdown">Target Notion Page</label>
+      <div class="select-container">
+        <select id="page-dropdown">
+          <option value="" disabled selected>Loading pages...</option>
+        </select>
+      </div>
     </div>
 
-    <div class="session-actions">
+    <div class="session-actions" style="margin-top: 15px;">
       <button id="btn-start" class="primary-btn pulse">Start Session</button>
       <button id="btn-end" class="secondary-btn hidden">End Session</button>
     </div>

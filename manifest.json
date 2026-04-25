@@ -2,16 +2,17 @@
   "manifest_version": 3,
   "name": "StudySnap",
   "version": "1.0",
-  "description": "Capture YouTube screenshots seamlessly into Notion.",
+  "description": "Capture screenshots seamlessly into Notion or Clipboard.",
   "permissions": [
     "storage",
     "activeTab",
     "tabs",
     "scripting",
-    "commands"
+    "commands",
+    "clipboardWrite"
   ],
   "host_permissions": [
-    "https://*.youtube.com/*",
+    "<all_urls>",
     "https://api.notion.com/*",
     "https://freeimage.host/*"
   ],
@@ -28,19 +29,19 @@
         "default": "Alt+S",
         "mac": "Alt+S"
       },
-      "description": "Take a screenshot of the saved zone on YouTube"
+      "description": "Take a screenshot of the saved zone"
     },
     "take_fullscreen_screenshot": {
       "suggested_key": {
         "default": "Alt+F",
         "mac": "Alt+F"
       },
-      "description": "Take a full screen screenshot on YouTube"
+      "description": "Take a full screen screenshot"
     }
   },
   "content_scripts": [
     {
-      "matches": ["https://*.youtube.com/watch*"],
+      "matches": ["<all_urls>"],
       "js": ["content.js"],
       "css": ["styles/content.css"]
     }
